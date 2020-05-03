@@ -1,0 +1,24 @@
+{
+    "pipeline": {
+        "name": "frames"
+    },
+    "description": "A pipeline that extracts the frames of a video by using the OpenCV library.",
+    "input": {
+        "pfs": {
+            "glob": "/*",
+            "repo": "videos"
+        }
+    },
+    "transform": {
+        "cmd": [
+            "python",
+            "extract_frames.py",
+            "--input",
+            "/pfs/videos",
+            "--output-dir",
+            "/pfs/out",
+            "--threaded"
+        ],
+        "image": "jimmywhitaker/videoproc:latest"
+    }
+}
