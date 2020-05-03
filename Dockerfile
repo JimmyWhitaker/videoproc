@@ -3,5 +3,5 @@ MAINTAINER Jimmy Whitaker
 
 WORKDIR /workspace/
 ADD . /workspace
-RUN pip install --no-cache --no-cache-dir --upgrade -r requirements.txt
+RUN pip install --no-cache --no-cache-dir --upgrade argparse
 RUN rm -fr ~/.cache/pip /tmp*
