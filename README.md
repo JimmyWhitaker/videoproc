@@ -1,34 +1,33 @@
 # Video Processing Demo - Frame Extraction
-Video processing in Pachyderm! 
+An example of video processing in Pachyderm.
 
-This repository has a Python (multi-process) script to extract the frames of a video (for use in machine learning applications). We then deploy the script using a Pachyderm pipeline to parallelize it over a lot of video files.
+This repository has a Python (multi-process) script to extract the frames of a video (for use in machine learning applications). We then show an example of how to deploy this script using a Pachyderm pipeline to parallelize it over many video files.
 
-[Pachyderm](www.pachyderm.com) is an easy to use pipelining and versioning system for data processing. It makes it easy to deploy and update processing pipelines. This can be really useful for iterating on and scaling a data-centered pipeline like video processing. 
+[Pachyderm](www.pachyderm.com) is an easy to use pipelining and versioning system for data processing. It makes it easy to deploy and update processing pipelines making it very useful for applications such as video processing. 
 
 We will be taking input videos: 
 ```
 samples/
-├── my_tictoc_dance.mp4
-├── cat_laser.ogv
-└── guitar_shred.ogv
+├── large.mp4
+├── small.ogv
 ```
 
-And output:
+And output frames as JPEG images:
 ```
 output/
-└── my_tictoc_dance.mp4
+└── large.mp4
 │   ├── 0000000000.jpg
 │   ├── 0000000001.jpg
 │   ...
 │   └── 0000002020.jpg
-└── cat_laser.ogv
+└── small.ogv
 │   ├── 0000000000.jpg
 │   ├── 0000000001.jpg
 ...
 ```
 
 ## 1. Installation
-This demo is meant to deploy the script and show how it can be run with Pachyderm. If we want to test the container or script locally without Pachyderm, we can run it with Docker or install it from source and run with Python3 and OpenCV. There are installation and running instructions for each. 
+This demo is meant to showcase how a video processing script [`extract_frames.py`](extract_frames.py) can be scaled with Pachyderm to process a large set of videos. Before deploying with Pachyderm, the script can be run locally using the provided Dockerfile or from source using an installation of Python3 and OpenCV.
 
 ### Pachyderm
 
@@ -52,14 +51,14 @@ docker pull jimmywhitaker/videoproc:latest
 To install locally, you will need Python3 and OpenCV. Clone this repo and install the requirements:  
 
 ```
-git clone https://github.com/JimnyCricket/videoproc.git
+git clone https://github.com/JimmyWhitaker/videoproc.git
 cd videoproc
 pip install -r requirements.txt
 ```
 
 ## 2. Frame Extraction 
 
-The frame extraction script is simple. It reads input videos and writes the frames to an output directory. Additionally, it has: 
+The frame extraction script [`extract_frames.py`](extract_frames.py) reads input videos and writes the frames to an output directory. Additionally, it has:
 
 1. Optional multi-processing to increase the speed of the frame extraction (1 process per CPU core).
 2. Downsample the video to a specific frames per second (FPS). This can be useful if you don't need all the frames for a video and can save a lot on processing. 
@@ -79,16 +78,16 @@ optional arguments:
   --threaded        Run the extraction with multiple threads
 ```
 
-The script can be run from the command line:  
+To run from the command line:  
 
 ```
-python extract_frames.py --input ./samples/elephant_small.ogv --output-dir ./output
+python extract_frames.py --input ./samples/small.ogv --output-dir ./output
 ```
 
 Or, with Docker:  
 
 ```  
-docker run -it -v $(pwd)/:/data jimmywhitaker/videoproc:latest python extract_frames.py --input /data/samples/elephant_small.ogv --output-dir /data/output --threaded
+docker run -it -v $(pwd)/:/data jimmywhitaker/videoproc:latest python extract_frames.py --input /data/samples/small.ogv --output-dir /data/output --threaded
 ```
 
 
@@ -136,9 +135,9 @@ pachctl create repo videos
 
 ### Step 2 - Create a Pipeline  
 
-Once we have our videos repo, we can deploy the frame extraction pipeline. Pipelines are very powerful concept in Pachyderm. Simply put, they take input files from one repo, process it using code in a Docker image, and output files to a new repo (with the same name as the pipeline). Configuring a pipeline only requires a single json file. In our pipeline, [`frames.json`](frames.json), we define the input repo, the Docker image that contains our code, and the command that will be run to put our frames in the output repo. The output repo is created automatically and will have the same name as our pipeline, i.e. `frames`.
+Once we have our videos repo, we can deploy the frame extraction pipeline. Pachyderm Pipelines take input files from one repo, process it using code in a Docker image, and output files to a new repo (with the same name as the pipeline). Configuring a pipeline only requires a single json file. In our pipeline, [`frames.json`](frames.json), we define the input repo, the Docker image that contains our code, and the command that will be run to put our frames in the output repo. The output repo is created automatically and will have the same name as our pipeline, i.e. `frames`.
 
-Pachyderm handles the input and output repos in a very intuitive manner. Data is mapped into the container as a file system (Pachyderm File System, or PFS). Our input repo can therefore be accessed at the location `/pfs/videos` and our output files are available at `/pfs/out`.  
+Pachyderm maps the input and output repos in the container as a file system (Pachyderm File System, or PFS). Our input repo can therefore be accessed at the location `/pfs/videos` and our output files are available at `/pfs/out`.  
 
 Another amazing feature is [glob patterns](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/glob-pattern/). We won't go into it too much here, but this allows us to control how data from the input repo is passed to the container. We could pass all videos to a single container (iterating through the videos one-by-one), or start a container for each video in our input repo, running the computation in parallel and scaling it across our cluster. We do the latter in this demo.  
 
@@ -150,7 +149,7 @@ pachctl create pipeline -f frames.json
 
 ### Step 3 - Add a video to kick off the pipeline
 
-Once the pipeline is created, the docker images is pulled and ready to run. As soon as we add data to the input repo, the Pachyderm will automatically detect the presence of new data and will start a job to process the data. 
+Once the pipeline is created, the Docker images are pulled and ready to run. As soon as we add data to the input repo, Pachyderm will automatically detect the presence of new data and will start a job to process the data. 
 
 We can add one of our sample files by running: 
 ```
@@ -168,11 +167,24 @@ pachctl list file videos@master
 Once we added the video the pipeline started running. We can check that a job was started with: 
 ```
 pachctl list job
+
+ID                               PIPELINE STARTED       DURATION RESTART PROGRESS  DL       UL       STATE
+3d69ec8874f744af98157ace391fc94b frames   2 minutes ago 1 second 0       1 + 0 / 1 322.3KiB 2.654MiB success
 ```
 
-and even inspect the logs for that pipeline with: 
+We can also inspect the logs for that pipeline with: 
 ```
 pachctl logs --pipeline=frames
+
+container "user" in pod "pipeline-frames-v1-z45s5" is waiting to start: PodInitializing
+
+```
+
+If we try and list the output repo while the job is running, we'll see something like this:
+
+```
+pachctl list file frames@master:/small.ogv/
+output commit eca89c86a6684ef0a7cbb5e5d5a1d008 not finished
 ```
 
 
@@ -182,6 +194,13 @@ Once the pipeline is finished, if it was successful we should be able to see all
 
 ```
 pachctl list file frames@master:/small.ogv 
+
+NAME                      TYPE SIZE
+/small.ogv/0000000000.jpg file 29.82KiB
+/small.ogv/0000000001.jpg file 30.17KiB
+/small.ogv/0000000002.jpg file 31.01KiB
+...
+/small.ogv/0000000087.jpg file 30.33KiB
 ```
 
 ### Step 6

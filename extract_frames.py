@@ -21,7 +21,7 @@ parser.add_argument("--fps",
                     help="Frames per second (-1 for all frames)")
 parser.add_argument("--threaded",
                     action="store_true",
-                    help="Run the extraction with multiple threads")
+                    help="Run the extraction with multiple threads (1 thread/CPU)")
 
 
 def extract_frames(video_path,
