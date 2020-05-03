@@ -118,7 +118,7 @@ pachctl logs --pipeline=frames
 pachctl list file frames@master:/small.ogv  
 
 # 6. Download one of the frames
-pachctl get file frames@master:/small.ogv/0000000084.jpg -o ./example_frame.jpg  
+pachctl get file frames@master:/small.ogv/0000000084.jpg -o ./output/example_frame.jpg  
 
 ```  
 
